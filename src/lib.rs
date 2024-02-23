@@ -16,7 +16,7 @@ pub struct Fiter<T: Iterator<Item = std::io::Result<u8>>> {
 }
 
 impl<T: Iterator<Item = std::io::Result<u8>>> Fiter<T> {
-    /// Creates a new Fiter with the given iterator.
+    /// Creates a new `Fiter` with the given iterator.
     pub fn new(bytes: T) -> Self {
         Fiter { bytes }
     }
