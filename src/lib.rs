@@ -2,8 +2,6 @@ pub mod error;
 pub use error::Error;
 mod buffered_file;
 use buffered_file::BufferedFile;
-mod buffered_reader;
-use buffered_reader::BufferedReader;
 
 use std::{
     fs::File,
@@ -21,20 +19,14 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Fiter<T> {
 }
 
 impl Fiter<Bytes<File>> {
-    pub fn new_no_buf(filename: &str) -> Result<Self, Error> {
+    pub fn new_unbuffered(filename: &str) -> Result<Self, Error> {
         Ok(Fiter::new(File::open(filename)?.bytes()))
     }
 }
 
 impl Fiter<BufferedFile<1000>> {
-    pub fn new_buf_file(filename: &str) -> Result<Self, Error> {
+    pub fn new_buffered(filename: &str) -> Result<Self, Error> {
         Ok(Fiter::new(BufferedFile::new(filename)?))
-    }
-}
-
-impl Fiter<BufferedReader> {
-    pub fn new_buf_reader(filename: &str) -> Result<Self, Error> {
-        Ok(Fiter::new(BufferedReader::new(filename)?))
     }
 }
 
@@ -59,7 +51,7 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Iterator for Fiter<T> {
             start_byte &= 0b00000111;
             4
         } else {
-            return Some(Err(Error::InvalidByte(start_byte)));
+            return Some(Err(Error::InvalidStartByte(start_byte)));
         };
 
         // create codepoint
@@ -69,7 +61,7 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Iterator for Fiter<T> {
                 Err(err) => return Some(Err(err.into())),
                 Ok(byte) => {
                     if (byte >> 6) != 0b10 {
-                        return Some(Err(Error::InvalidByte(byte)));
+                        return Some(Err(Error::InvalidFollowByte(byte)));
                     }
                     cp <<= 6;
                     cp |= (byte & 0b00111111) as u32;
@@ -80,7 +72,7 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Iterator for Fiter<T> {
         // convert codepoint to char
         match char::from_u32(cp).map(|c| Ok(c)) {
             c @ Some(_) => c,
-            None => Some(Err(Error::InvalidUnicode(cp))),
+            None => Some(Err(Error::InvalidCodepoint(cp))),
         }
     }
 }
@@ -133,10 +125,10 @@ mod tests {
 
     #[test]
     fn multi_byte() {
-        let mut fiter = get_fiter(&['ä', 'Ü', '💚', '😄']);
+        let mut fiter = get_fiter(&['ä', 'Ù', '💚', '😄']);
 
         assert_eq!(fiter.next().unwrap().unwrap(), 'ä');
-        assert_eq!(fiter.next().unwrap().unwrap(), 'Ü');
+        assert_eq!(fiter.next().unwrap().unwrap(), 'Ù');
         assert_eq!(fiter.next().unwrap().unwrap(), '💚');
         assert_eq!(fiter.next().unwrap().unwrap(), '😄');
         assert!(fiter.next().is_none());
