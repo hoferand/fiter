@@ -39,9 +39,8 @@ impl<const B: usize> Iterator for BufferedFile<B> {
     fn next(&mut self) -> Option<Self::Item> {
         if self.pt >= self.max {
             // refill buffer
-            match self.load() {
-                Err(err) => return Some(Err(err)),
-                _ => (),
+            if let Err(err) = self.load() {
+                return Some(Err(err));
             }
         }
 

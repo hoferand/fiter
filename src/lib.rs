@@ -88,7 +88,7 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Iterator for Fiter<T> {
         }
 
         // convert code point to char
-        match char::from_u32(cp).map(|c| Ok(c)) {
+        match char::from_u32(cp).map(Ok) {
             c @ Some(_) => c,
             None => Some(Err(Error::InvalidCodePoint(cp))),
         }
