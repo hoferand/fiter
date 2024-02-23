@@ -74,7 +74,7 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Iterator for Fiter<T> {
 
         // create code point
         let mut cp = start_byte as u32;
-        for _ in 0..(units - 1) {
+        for _ in 1..units {
             match self.bytes.next()? {
                 Err(err) => return Some(Err(err.into())),
                 Ok(byte) => {
