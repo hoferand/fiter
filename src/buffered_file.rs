@@ -2,6 +2,7 @@ use std::{fs::File, io::Read};
 
 use crate::Error;
 
+/// A buffered iterator over the bytes of a file.
 pub struct BufferedFile<const B: usize> {
     file: File,
     buf: [u8; B],
@@ -10,6 +11,7 @@ pub struct BufferedFile<const B: usize> {
 }
 
 impl<const B: usize> BufferedFile<B> {
+    /// Opens the given filename and creates a new BufferedFile from it.
     pub fn new(filename: &str) -> Result<Self, Error> {
         Ok(BufferedFile {
             file: File::open(filename)?,
@@ -19,6 +21,10 @@ impl<const B: usize> BufferedFile<B> {
         })
     }
 
+    /// Refills the buffer.
+    ///
+    /// This method should only be called if the buffer is empty,
+    /// because the whole buffer gets overridden.
     fn load(&mut self) -> std::io::Result<()> {
         self.max = self.file.read(&mut self.buf)?;
         self.pt = 0;
@@ -29,8 +35,10 @@ impl<const B: usize> BufferedFile<B> {
 impl<const B: usize> Iterator for BufferedFile<B> {
     type Item = std::io::Result<u8>;
 
+    /// Returns the next byte of this file.
     fn next(&mut self) -> Option<Self::Item> {
         if self.pt >= self.max {
+            // refill buffer
             match self.load() {
                 Err(err) => return Some(Err(err)),
                 _ => (),

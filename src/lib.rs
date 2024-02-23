@@ -10,23 +10,27 @@ use std::{
     io::{Bytes, Read},
 };
 
+/// The iterator over the chars of a file.
 pub struct Fiter<T: Iterator<Item = std::io::Result<u8>>> {
     bytes: T,
 }
 
 impl<T: Iterator<Item = std::io::Result<u8>>> Fiter<T> {
+    /// Creates a new Fiter with the given iterator.
     pub fn new(bytes: T) -> Self {
         Fiter { bytes }
     }
 }
 
 impl Fiter<Bytes<File>> {
+    /// A helper function to create an unbuffered `Fiter`.
     pub fn new_unbuffered(filename: &str) -> Result<Self, Error> {
         Ok(Fiter::new(File::open(filename)?.bytes()))
     }
 }
 
 impl Fiter<BufferedFile<1000>> {
+    /// A helper function to create a buffered `Fiter`.
     pub fn new_buffered(filename: &str) -> Result<Self, Error> {
         Ok(Fiter::new(BufferedFile::new(filename)?))
     }
@@ -35,6 +39,18 @@ impl Fiter<BufferedFile<1000>> {
 impl<T: Iterator<Item = std::io::Result<u8>>> Iterator for Fiter<T> {
     type Item = Result<char, Error>;
 
+    /// This method implements the conversion of bytes to UTF-8 decoded chars.
+    ///
+    /// The conversion is implemented as specified in [RFC 3629](https://datatracker.ietf.org/doc/html/rfc3629).  
+    /// One UTF-8 encoded char can be 1 to 4 bytes long:  
+    ///     0xxxxxxx  
+    ///     110xxxxx 10xxxxxx  
+    ///     1110xxxx 10xxxxxx 10xxxxxx  
+    ///     11110xxx 10xxxxxx 10xxxxxx 10xxxxxx  
+    /// The first byte indicates how much bytes are following to get a full code point.  
+    /// The bits marked as `x` are the data bits, which are used to encode the code point, all other bits are control bits.  
+    /// To get a code point as `u32` all control bits are removed and the remaining bits are concatenated together.  
+    /// Note that the single byte encoding is equal to ASCII.  
     fn next(&mut self) -> Option<Self::Item> {
         // get start byte
         let mut start_byte = match self.bytes.next()? {
@@ -56,7 +72,7 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Iterator for Fiter<T> {
             return Some(Err(Error::InvalidStartByte(start_byte)));
         };
 
-        // create codepoint
+        // create code point
         let mut cp = start_byte as u32;
         for _ in 0..(units - 1) {
             match self.bytes.next()? {
@@ -71,10 +87,10 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Iterator for Fiter<T> {
             }
         }
 
-        // convert codepoint to char
+        // convert code point to char
         match char::from_u32(cp).map(|c| Ok(c)) {
             c @ Some(_) => c,
-            None => Some(Err(Error::InvalidCodepoint(cp))),
+            None => Some(Err(Error::InvalidCodePoint(cp))),
         }
     }
 }

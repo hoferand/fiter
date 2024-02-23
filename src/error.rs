@@ -1,20 +1,26 @@
 use std::fmt::Display;
 
+/// The error thrown by the iterator.
 #[derive(Debug)]
 pub enum Error {
+    /// Is thrown if an io error occurs during reading the file.
     Io(std::io::Error),
+    /// Is thrown if a start byte is expected,
+    /// but the byte has not an appropriate bit sequence.
     InvalidStartByte(u8),
+    /// Is thrown if a following byte do not start with `0b10`.
     InvalidFollowByte(u8),
-    InvalidCodepoint(u32),
+    /// Is thrown if a decoded byte sequence results in an invalid code point.
+    InvalidCodePoint(u32),
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::Io(err) => err.fmt(f),
+            Error::Io(err) => write!(f, "io error: `{}`", err),
             Error::InvalidStartByte(byte) => write!(f, "invalid start byte: `{:08b}`", byte),
             Error::InvalidFollowByte(byte) => write!(f, "invalid follow byte: `{:08b}`", byte),
-            Error::InvalidCodepoint(cp) => write!(f, "invalid codepoint: `{}`", cp),
+            Error::InvalidCodePoint(cp) => write!(f, "invalid code point: `{}`", cp),
         }
     }
 }
