@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")] // used for doc tests
+
 pub mod error;
 pub use error::Error;
 mod buffered_file;
