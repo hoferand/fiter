@@ -29,7 +29,7 @@ impl Fiter<Bytes<File>> {
     }
 }
 
-impl Fiter<BufferedFile<1000>> {
+impl Fiter<BufferedFile<1_000>> {
     /// A helper function to create a buffered `Fiter`.
     pub fn new_buffered(filename: &str) -> Result<Self, Error> {
         Ok(Fiter::new(BufferedFile::new(filename)?))
@@ -202,7 +202,7 @@ mod benches {
         let now = Instant::now();
 
         for _ in 0..10 {
-            for c in Fiter::new(BufferedFile::<1000>::new(file).unwrap()) {
+            for c in Fiter::new(BufferedFile::<1_000>::new(file).unwrap()) {
                 c.unwrap();
             }
         }
@@ -217,7 +217,7 @@ mod benches {
         let now = Instant::now();
 
         for _ in 0..10 {
-            for c in Fiter::new(BufferedFile::<100000>::new(file).unwrap()) {
+            for c in Fiter::new(BufferedFile::<100_000>::new(file).unwrap()) {
                 c.unwrap();
             }
         }
