@@ -152,3 +152,80 @@ mod tests {
         assert!(fiter.next().is_none());
     }
 }
+
+// run benches with: `cargo test --release -- --nocapture --quiet`
+#[cfg(test)]
+mod benches {
+    use std::{fs::read_to_string, io::BufReader, time::Instant};
+
+    use rstest::rstest;
+    use utf8_chars::BufReadCharsExt;
+
+    use super::*;
+
+    #[rstest]
+    #[case("benches/large_ascii.txt")]
+    #[case("benches/large_utf8.txt")]
+    fn large_ascii_std(#[case] file: &str) {
+        let now = Instant::now();
+
+        for _ in 0..10 {
+            for _ in read_to_string(file).unwrap().chars() {}
+        }
+
+        eprintln!("BENCH: std took for `{}`: {:.2?}", file, now.elapsed());
+    }
+
+    #[rstest]
+    #[case("benches/large_ascii.txt")]
+    #[case("benches/large_utf8.txt")]
+    fn large_ascii_utf8_chars(#[case] file: &str) {
+        let now = Instant::now();
+
+        for _ in 0..10 {
+            for c in BufReader::new(File::open(file).unwrap()).chars() {
+                c.unwrap();
+            }
+        }
+
+        eprintln!(
+            "BENCH: utf8-chars took for `{}`: {:.2?}",
+            file,
+            now.elapsed()
+        );
+    }
+
+    #[rstest]
+    #[case("benches/large_ascii.txt")]
+    #[case("benches/large_utf8.txt")]
+    fn large_ascii_fiter_1k(#[case] file: &str) {
+        let now = Instant::now();
+
+        for _ in 0..10 {
+            for c in Fiter::new(BufferedFile::<1000>::new(file).unwrap()) {
+                c.unwrap();
+            }
+        }
+
+        eprintln!("BENCH: fiter_1k took for `{}`: {:.2?}", file, now.elapsed());
+    }
+
+    #[rstest]
+    #[case("benches/large_ascii.txt")]
+    #[case("benches/large_utf8.txt")]
+    fn large_ascii_fiter_100k(#[case] file: &str) {
+        let now = Instant::now();
+
+        for _ in 0..10 {
+            for c in Fiter::new(BufferedFile::<100000>::new(file).unwrap()) {
+                c.unwrap();
+            }
+        }
+
+        eprintln!(
+            "BENCH: fiter_100k took for `{}`: {:.2?}",
+            file,
+            now.elapsed()
+        );
+    }
+}
