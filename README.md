@@ -1,7 +1,7 @@
 <!-- PROJECT NAME -->
 # Fiter
 
-A simple char-by-char iterator for files in rust.  
+A simple and fast char-by-char iterator for UTF-8 files.  
 For that it converts an iterator over bytes into an iterator of UTF-8 decoded chars.  
 The UTF-8 decoder is implemented as specified in [RFC 3629](https://datatracker.ietf.org/doc/html/rfc3629).
 
