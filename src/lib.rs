@@ -64,26 +64,18 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Iterator for Fiter<T> {
     fn next(&mut self) -> Option<Self::Item> {
         // get start byte
         let start_offset = self.offset;
-        let mut start_byte = match self.next_byte()? {
-            Ok(byte) => byte,
+        let (start_byte, units) = match self.next_byte()? {
+            Ok(byte) if byte >> 7 == 0 => (byte, 1),
+            Ok(byte) if byte >> 5 == 0b110 => (byte & 0b00011111, 2),
+            Ok(byte) if byte >> 4 == 0b1110 => (byte & 0b00001111, 3),
+            Ok(byte) if byte >> 3 == 0b11110 => (byte & 0b00000111, 4),
+            Ok(byte) => {
+                return Some(Err(Error::InvalidStartByte {
+                    offset: start_offset,
+                    byte,
+                }));
+            }
             Err(err) => return Some(Err(err.into())),
-        };
-        let units = if start_byte >> 7 == 0 {
-            1
-        } else if start_byte >> 5 == 0b110 {
-            start_byte &= 0b00011111;
-            2
-        } else if start_byte >> 4 == 0b1110 {
-            start_byte &= 0b00001111;
-            3
-        } else if start_byte >> 3 == 0b11110 {
-            start_byte &= 0b00000111;
-            4
-        } else {
-            return Some(Err(Error::InvalidStartByte {
-                offset: start_offset,
-                byte: start_byte,
-            }));
         };
 
         // create code point
