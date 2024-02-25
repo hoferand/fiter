@@ -7,11 +7,13 @@ pub enum Error {
     Io(std::io::Error),
     /// Is thrown if a start byte is expected,
     /// but the byte has not an appropriate bit sequence.
+    /// `offset` is the number of bytes before the faulty byte.
     InvalidStartByte { offset: u64, byte: u8 },
     /// Is thrown if a following byte do not start with `0b10`.
+    /// `offset` is the number of bytes before the faulty byte.
     InvalidFollowByte { offset: u64, byte: u8 },
-    /// Is thrown if a decoded byte sequence results in an invalid code point.  
-    /// (offset, code point)
+    /// Is thrown if a decoded byte sequence results in an invalid code point.
+    /// `offset` is the number of bytes before the starting byte of the faulty code point.
     InvalidCodePoint { offset: u64, cp: u32 },
 }
 
