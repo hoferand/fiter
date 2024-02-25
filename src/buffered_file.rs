@@ -35,7 +35,7 @@ impl<const B: usize> BufferedFile<B> {
 impl<const B: usize> Iterator for BufferedFile<B> {
     type Item = std::io::Result<u8>;
 
-    /// Returns the next byte of this file.
+    /// Returns the next byte of this file or `None` if EOF is reached.
     fn next(&mut self) -> Option<Self::Item> {
         if self.pt >= self.max {
             // refill buffer
