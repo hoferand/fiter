@@ -1,4 +1,4 @@
-use std::{fs::File, io::Read};
+use std::{fs::File, io::Read, path::Path};
 
 use crate::Error;
 
@@ -12,7 +12,7 @@ pub struct BufferedFile<const B: usize> {
 
 impl<const B: usize> BufferedFile<B> {
     /// Opens the given filename and creates a new `BufferedFile` from it.
-    pub fn new(filename: &str) -> Result<Self, Error> {
+    pub fn new(filename: impl AsRef<Path>) -> Result<Self, Error> {
         Ok(BufferedFile {
             file: File::open(filename)?,
             buf: [0; B],

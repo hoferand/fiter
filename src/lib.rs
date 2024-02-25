@@ -8,6 +8,7 @@ use buffered_file::BufferedFile;
 use std::{
     fs::File,
     io::{Bytes, Read},
+    path::Path,
 };
 
 /// The iterator over the chars of a file.
@@ -24,14 +25,14 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Fiter<T> {
 
 impl Fiter<Bytes<File>> {
     /// A helper function to create an unbuffered `Fiter`.
-    pub fn new_unbuffered(filename: &str) -> Result<Self, Error> {
+    pub fn new_unbuffered(filename: impl AsRef<Path>) -> Result<Self, Error> {
         Ok(Fiter::new(File::open(filename)?.bytes()))
     }
 }
 
 impl Fiter<BufferedFile<1_000>> {
     /// A helper function to create a buffered `Fiter`.
-    pub fn new_buffered(filename: &str) -> Result<Self, Error> {
+    pub fn new_buffered(filename: impl AsRef<Path>) -> Result<Self, Error> {
         Ok(Fiter::new(BufferedFile::new(filename)?))
     }
 }
@@ -166,66 +167,74 @@ mod benches {
     #[rstest]
     #[case("benches/large_ascii.txt")]
     #[case("benches/large_utf8.txt")]
-    fn large_ascii_std(#[case] file: &str) {
+    fn large_ascii_std(#[case] file: impl AsRef<Path>) {
         let now = Instant::now();
 
         for _ in 0..10 {
-            for _ in read_to_string(file).unwrap().chars() {}
+            for _ in read_to_string(&file).unwrap().chars() {}
         }
 
-        eprintln!("BENCH: std took for `{}`: {:.2?}", file, now.elapsed());
+        let elapsed = now.elapsed();
+        eprintln!("BENCH: std took for {:?}: {:.2?}", file.as_ref(), elapsed);
     }
 
     #[rstest]
     #[case("benches/large_ascii.txt")]
     #[case("benches/large_utf8.txt")]
-    fn large_ascii_utf8_chars(#[case] file: &str) {
+    fn large_ascii_utf8_chars(#[case] file: impl AsRef<Path>) {
         let now = Instant::now();
 
         for _ in 0..10 {
-            for c in BufReader::new(File::open(file).unwrap()).chars() {
+            for c in BufReader::new(File::open(&file).unwrap()).chars() {
                 c.unwrap();
             }
         }
 
+        let elapsed = now.elapsed();
         eprintln!(
-            "BENCH: utf8-chars took for `{}`: {:.2?}",
-            file,
-            now.elapsed()
+            "BENCH: utf8-chars took for {:?}: {:.2?}",
+            file.as_ref(),
+            elapsed
         );
     }
 
     #[rstest]
     #[case("benches/large_ascii.txt")]
     #[case("benches/large_utf8.txt")]
-    fn large_ascii_fiter_1k(#[case] file: &str) {
+    fn large_ascii_fiter_1k(#[case] file: impl AsRef<Path>) {
         let now = Instant::now();
 
         for _ in 0..10 {
-            for c in Fiter::new(BufferedFile::<1_000>::new(file).unwrap()) {
+            for c in Fiter::new(BufferedFile::<1_000>::new(&file).unwrap()) {
                 c.unwrap();
             }
         }
 
-        eprintln!("BENCH: fiter_1k took for `{}`: {:.2?}", file, now.elapsed());
+        let elapsed = now.elapsed();
+        eprintln!(
+            "BENCH: fiter_1k took for {:?}: {:.2?}",
+            file.as_ref(),
+            elapsed
+        );
     }
 
     #[rstest]
     #[case("benches/large_ascii.txt")]
     #[case("benches/large_utf8.txt")]
-    fn large_ascii_fiter_100k(#[case] file: &str) {
+    fn large_ascii_fiter_100k(#[case] file: impl AsRef<Path>) {
         let now = Instant::now();
 
         for _ in 0..10 {
-            for c in Fiter::new(BufferedFile::<100_000>::new(file).unwrap()) {
+            for c in Fiter::new(BufferedFile::<100_000>::new(&file).unwrap()) {
                 c.unwrap();
             }
         }
 
+        let elapsed = now.elapsed();
         eprintln!(
-            "BENCH: fiter_100k took for `{}`: {:.2?}",
-            file,
-            now.elapsed()
+            "BENCH: fiter_100k took for {:?}: {:.2?}",
+            file.as_ref(),
+            elapsed
         );
     }
 }
