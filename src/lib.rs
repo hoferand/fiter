@@ -14,12 +14,21 @@ use std::{
 /// The iterator over the chars of a file.
 pub struct Fiter<T: Iterator<Item = std::io::Result<u8>>> {
     bytes: T,
+    offset: u64,
 }
 
 impl<T: Iterator<Item = std::io::Result<u8>>> Fiter<T> {
     /// Creates a new `Fiter` with the given iterator.
     pub fn new(bytes: T) -> Self {
-        Fiter { bytes }
+        Fiter { bytes, offset: 0 }
+    }
+
+    /// Wrapper method for the bytes iterator.
+    fn next_byte(&mut self) -> Option<std::io::Result<u8>> {
+        let byte = self.bytes.next()?;
+        self.offset += 1;
+
+        Some(byte)
     }
 }
 
@@ -54,7 +63,8 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Iterator for Fiter<T> {
     /// Note that the single byte encoding is equal to ASCII.  
     fn next(&mut self) -> Option<Self::Item> {
         // get start byte
-        let mut start_byte = match self.bytes.next()? {
+        let start_offset = self.offset;
+        let mut start_byte = match self.next_byte()? {
             Ok(byte) => byte,
             Err(err) => return Some(Err(err.into())),
         };
@@ -70,17 +80,23 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Iterator for Fiter<T> {
             start_byte &= 0b00000111;
             4
         } else {
-            return Some(Err(Error::InvalidStartByte(start_byte)));
+            return Some(Err(Error::InvalidStartByte {
+                offset: start_offset,
+                byte: start_byte,
+            }));
         };
 
         // create code point
         let mut cp = start_byte as u32;
         for _ in 1..units {
-            match self.bytes.next()? {
+            match self.next_byte()? {
                 Err(err) => return Some(Err(err.into())),
                 Ok(byte) => {
                     if (byte >> 6) != 0b10 {
-                        return Some(Err(Error::InvalidFollowByte(byte)));
+                        return Some(Err(Error::InvalidFollowByte {
+                            offset: self.offset - 1,
+                            byte,
+                        }));
                     }
                     cp <<= 6;
                     cp |= (byte & 0b00111111) as u32;
@@ -91,7 +107,10 @@ impl<T: Iterator<Item = std::io::Result<u8>>> Iterator for Fiter<T> {
         // convert code point to char
         match char::from_u32(cp).map(Ok) {
             c @ Some(_) => c,
-            None => Some(Err(Error::InvalidCodePoint(cp))),
+            None => Some(Err(Error::InvalidCodePoint {
+                offset: start_offset,
+                cp,
+            })),
         }
     }
 }
